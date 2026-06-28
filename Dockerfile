@@ -4,6 +4,11 @@
 FROM mwader/static-ffmpeg:7.1.1 AS ffmpeg-source
 
 # ============================
+# Python 3.13 (estável)
+# ============================
+FROM python:3.13-alpine AS python-source
+
+# ============================
 # n8n 2.26.8 (estável)
 # ============================
 FROM n8nio/n8n:2.26.8
@@ -17,29 +22,27 @@ COPY --from=ffmpeg-source /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg-source /ffprobe /usr/local/bin/ffprobe
 
 # ----------------------------
-# Instala Python 3 e dependências
+# Python
+# ----------------------------
+COPY --from=python-source /usr/local/bin/python* /usr/local/bin/
+COPY --from=python-source /usr/local/lib/ /usr/local/lib/
+COPY --from=python-source /usr/lib/libffi* /usr/lib/
+
+# ----------------------------
+# Dependências úteis
 # ----------------------------
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
     bash \
     curl \
     wget \
     git \
-    ca-certificates \
-    tzdata
+    ca-certificates
 
-# Cria links simbólicos para compatibilidade
-RUN ln -sf /usr/bin/python3 /usr/local/bin/python && \
-    ln -sf /usr/bin/python3 /usr/local/bin/python3 && \
-    ln -sf /usr/bin/pip3 /usr/local/bin/pip
+# ----------------------------
+# yt-dlp (última versão estável no momento)
+# ----------------------------
+ADD https://github.com/yt-dlp/yt-dlp
 
-# Atualiza o pip e instala o yt-dlp
-RUN python3 -m ensurepip && \
-    python3 -m pip install --no-cache-dir --upgrade \
-        pip \
-        setuptools \
-        wheel \
-        yt-dlp
+RUN chmod +x /usr/local/bin/yt-dlp
 
 USER node
