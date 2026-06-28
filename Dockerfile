@@ -1,23 +1,25 @@
-# Estágio 1: Pegar o FFmpeg pronto
-FROM mwader/static-ffmpeg:6.1.1 as ffmpeg-source
+# Estágio 1: Pegar o FFmpeg estático pronto
+FROM mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 
-# Estágio 2: Pegar o Python pronto do Debian Slim
-FROM python:3.11-slim as python-source
+# Estágio 2: Pegar o Python correto (Alpine), compatível com a libc do n8n
+FROM python:3.11-alpine AS python-source
 
-# Estágio Final: Montar tudo na imagem oficial do n8n
+# Estágio Final: Montar tudo no n8n
 FROM n8nio/n8n:2.10.4
 
 USER root
 
-# Copia o FFmpeg do primeiro estágio
+# Copia o FFmpeg e FFprobe
 COPY --from=ffmpeg-source /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg-source /ffprobe /usr/local/bin/ffprobe
 
-# Copia o ambiente do Python do segundo estágio
+# Copia o binário do Python e suas bibliotecas compatíveis com Alpine
 COPY --from=python-source /usr/local/bin/python* /usr/local/bin/
 COPY --from=python-source /usr/local/lib/ /usr/local/lib/
+COPY --from=python-source /usr/lib/libffi* /usr/lib/
 
-# Baixa e instala o binário do yt-dlp usando o próprio Python que copiamos
-RUN python3 -m pip install --no-cache-dir yt-dlp
+# Baixa diretamente o executável standalone do yt-dlp (evita problemas com pip)
+ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
+RUN chmod a+rx /usr/local/bin/yt-dlp
 
 USER node
