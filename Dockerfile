@@ -34,15 +34,12 @@ RUN ln -sf /usr/bin/python3 /usr/local/bin/python && \
     ln -sf /usr/bin/python3 /usr/local/bin/python3 && \
     ln -sf /usr/bin/pip3 /usr/local/bin/pip
 
-# Atualiza o pip
+# Atualiza o pip e instala o yt-dlp
 RUN python3 -m ensurepip && \
-    python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
-
-# ----------------------------
-# yt-dlp
-# ----------------------------
-ADD https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.24/yt-dlp /usr/local/bin/yt-dlp
-
-RUN chmod +x /usr/local/bin/yt-dlp
+    python3 -m pip install --no-cache-dir --upgrade \
+        pip \
+        setuptools \
+        wheel \
+        yt-dlp
 
 USER node
