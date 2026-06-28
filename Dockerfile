@@ -1,16 +1,10 @@
-# Mantém a imagem base original do n8n que você estava usando
 FROM n8nio/n8n:2.10.4
 
+# Força a mudança para o usuário root para ter acesso ao apk e instalar os pacotes
 USER root
 
-# Instala o ffmpeg, python3 (para o yt-dlp) e as ferramentas necessárias usando o apt
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    python3 \
-    python3-pip \
-    curl \
-    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp \
-    && rm -rf /var/lib/apt/lists/*
+# Instala as ferramentas necessárias usando o apk do Alpine
+RUN apk add --no-cache ffmpeg python3 yt-dlp
 
+# Volta para o usuário padrão do n8n por segurança
 USER node
