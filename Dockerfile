@@ -41,7 +41,7 @@ RUN apk add --no-cache \
 # ----------------------------
 # yt-dlp (última versão estável no momento)
 # ----------------------------
-ADD https://github.com/yt-dlp/yt-dlp
+ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
 
 RUN chmod +x /usr/local/bin/yt-dlp
 
