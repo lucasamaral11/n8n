@@ -1,10 +1,18 @@
 FROM n8nio/n8n:2.10.4
 
-# Força a mudança para o usuário root para ter acesso ao apk e instalar os pacotes
+# Entra como root para ter permissões de instalação de pacotes no Debian
 USER root
 
-# Instala as ferramentas necessárias usando o apk do Alpine
-RUN apk add --no-cache ffmpeg python3 yt-dlp
+# Atualiza os repositórios e instala as dependências necessárias
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    python3 \
+    python3-pip \
+    python3-six \
+    curl \
+    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
+    && chmod a+rx /usr/local/bin/yt-dlp \
+    && rm -rf /var/lib/apt/lists/*
 
-# Volta para o usuário padrão do n8n por segurança
+# Devolve a execução para o usuário padrão do n8n por segurança
 USER node
