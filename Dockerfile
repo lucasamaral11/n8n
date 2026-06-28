@@ -1,25 +1,48 @@
-# Estágio 1: Pegar o FFmpeg estático pronto
-FROM mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
+# ============================
+# FFmpeg 7.1.1 (estável)
+# ============================
+FROM mwader/static-ffmpeg:7.1.1 AS ffmpeg-source
 
-# Estágio 2: Pegar o Python correto (Alpine), compatível com a libc do n8n
-FROM python:3.11-alpine AS python-source
-
-# Estágio Final: Montar tudo no n8n
-FROM n8nio/n8n:2.10.4
+# ============================
+# n8n 2.26.8 (estável)
+# ============================
+FROM n8nio/n8n:2.26.8
 
 USER root
 
-# Copia o FFmpeg e FFprobe
+# ----------------------------
+# FFmpeg + FFprobe
+# ----------------------------
 COPY --from=ffmpeg-source /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=ffmpeg-source /ffprobe /usr/local/bin/ffprobe
 
-# Copia o binário do Python e suas bibliotecas compatíveis com Alpine
-COPY --from=python-source /usr/local/bin/python* /usr/local/bin/
-COPY --from=python-source /usr/local/lib/ /usr/local/lib/
-COPY --from=python-source /usr/lib/libffi* /usr/lib/
+# ----------------------------
+# Instala Python 3 e dependências
+# ----------------------------
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    bash \
+    curl \
+    wget \
+    git \
+    ca-certificates \
+    tzdata
 
-# Baixa diretamente o executável standalone do yt-dlp (evita problemas com pip)
-ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp /usr/local/bin/yt-dlp
-RUN chmod a+rx /usr/local/bin/yt-dlp
+# Cria links simbólicos para compatibilidade
+RUN ln -sf /usr/bin/python3 /usr/local/bin/python && \
+    ln -sf /usr/bin/python3 /usr/local/bin/python3 && \
+    ln -sf /usr/bin/pip3 /usr/local/bin/pip
+
+# Atualiza o pip
+RUN python3 -m ensurepip && \
+    python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# ----------------------------
+# yt-dlp
+# ----------------------------
+ADD https://github.com/yt-dlp/yt-dlp/releases/download/2026.06.24/yt-dlp /usr/local/bin/yt-dlp
+
+RUN chmod +x /usr/local/bin/yt-dlp
 
 USER node
