@@ -3,6 +3,7 @@ from threading import Lock
 import time
 
 app = Flask(__name__)
+app.json.sort_keys = False
 
 TIMEOUT = 40  # segundos
 
