@@ -56,11 +56,18 @@ def home():
     with mutex:
         clean_expired()
 
+        now = time.time()
+
+        status = {
+            user: max(0, round(expires - now, 1))
+            for user, expires in locks.items()
+        }
+
     return jsonify({
         "service": "Telegram Lock Service",
         "timeout": TIMEOUT,
         "active_locks": len(locks),
-        "users": list(locks.keys())
+        "locks": status
     })
 
 
