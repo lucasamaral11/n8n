@@ -1,34 +1,40 @@
 from flask import Flask, request, jsonify
-from threading import Timer, Lock
+from threading import Lock
+import time
 
 app = Flask(__name__)
+
+TIMEOUT = 40  # segundos
 
 locks = {}
 mutex = Lock()
 
-TIMEOUT = 40
 
-def release(user_id):
-    with mutex:
-        if user_id in locks:
-            del locks[user_id]
+def clean_expired():
+    now = time.time()
+    expired = [user for user, expires in locks.items() if expires <= now]
+    for user in expired:
+        del locks[user]
+
 
 @app.post("/start")
 def start():
     data = request.get_json(force=True)
-    user_id = str(data.get("telegramId"))
+    telegram_id = str(data.get("telegramId", "")).strip()
 
-    if not user_id:
+    if not telegram_id:
         return jsonify({"error": "telegramId obrigatório"}), 400
 
     with mutex:
-        if user_id in locks:
-            return jsonify({"status": "busy"}), 200
+        clean_expired()
 
-        timer = Timer(TIMEOUT, release, args=[user_id])
-        timer.start()
+        if telegram_id in locks:
+            return jsonify({
+                "status": "busy",
+                "remaining": max(0, int(locks[telegram_id] - time.time()))
+            }), 200
 
-        locks[user_id] = timer
+        locks[telegram_id] = time.time() + TIMEOUT
 
     return jsonify({"status": "ok"}), 200
 
@@ -36,23 +42,26 @@ def start():
 @app.post("/finish")
 def finish():
     data = request.get_json(force=True)
-    user_id = str(data.get("telegramId"))
+    telegram_id = str(data.get("telegramId", "")).strip()
 
     with mutex:
-        timer = locks.pop(user_id, None)
-
-    if timer:
-        timer.cancel()
+        clean_expired()
+        locks.pop(telegram_id, None)
 
     return jsonify({"status": "released"}), 200
 
 
 @app.get("/")
 def home():
-    return {
+    with mutex:
+        clean_expired()
+
+    return jsonify({
         "service": "Telegram Lock Service",
-        "active_locks": len(locks)
-    }
+        "timeout": TIMEOUT,
+        "active_locks": len(locks),
+        "users": list(locks.keys())
+    })
 
 
 if __name__ == "__main__":
